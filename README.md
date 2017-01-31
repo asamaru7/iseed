@@ -2,28 +2,40 @@
 
 [![Build Status](https://travis-ci.org/orangehill/iseed.png)](http://travis-ci.org/orangehill/iseed)
 [![Latest Stable Version](https://poser.pugx.org/orangehill/iseed/v/stable.png)](https://packagist.org/packages/orangehill/iseed) [![Total Downloads](https://poser.pugx.org/orangehill/iseed/downloads.png)](https://packagist.org/packages/orangehill/iseed)
+[![Analytics](https://ga-beacon.appspot.com/UA-1936460-35/iseed?useReferrer&flat)](https://github.com/igrigorik/ga-beacon)
 
 ## Installation
 
-1) For Laravel 5 instalation edit your project's `composer.json` file to require `orangehill/iseed`.
+1) Add `orangehill/iseed` to your composer file.
+
+#### Laravel 5
+For Laravel 5 installation edit your project's `composer.json` file to require `orangehill/iseed`.
 
     "require": {
 		"orangehill/iseed": "dev-master"
 	}
+	
+#### Laravel 5 versions less than 5.3.8
+For Laravel 5 versions that are less than 5.3.8 edit your project's `composer.json` file to require `2.2` version:
 
-If you wish to install it on Laravel 4 you should require 1.1 version:
+    "require": {
+		"orangehill/iseed": "2.2"
+	}
+	
+#### Laravel 4
+If you wish to install it on Laravel 4 you should require `1.1` version:
 
     "require": {
 		"orangehill/iseed": "1.1"
 	}
 
-2) Add the service provider by opening a `app/config/app.php` file, and adding a new item to the `providers` array.
-
-    'Orangehill\Iseed\IseedServiceProvider'
-
-3) Update Composer from the CLI:
+2) Update Composer from the CLI:
 
     composer update
+
+3) Add the service provider by opening a `app/config/app.php` file, and adding a new item to the `providers` array.
+
+    Orangehill\Iseed\IseedServiceProvider::class
 
 ## Artisan command options
 
@@ -48,6 +60,14 @@ The following command will overwrite `UsersTableSeeder.php` if it already exists
 php artisan iseed users --force
 ```
 
+### dumpauto
+Optional boolean parameter that controls the execution of `composer dump-autoload` command. Defaults to true.
+
+Example that will stop `composer dump-autoload` from execution:
+```
+php artisan iseed users --dumpauto=false
+```
+
 ### clean
 Optional parameter which will clean `app/database/seeds/DatabaseSeeder.php` before creating new seed class.
 
@@ -70,6 +90,15 @@ Optional parameter which defines the maximum number of entries seeded from a spe
 Example:
 ```
 artisan iseed users --max=10
+```
+
+### exclude
+Optional parameter which accepts comma separated list of columns that you'd like to exclude from tables that are being exported. In case of multiple tables, exclusion will be applied to all of them.
+
+Example:
+```
+artisan iseed users --exclude=id
+artisan iseed users --exclude=id,created_at,updated_at
 ```
 
 ### prerun

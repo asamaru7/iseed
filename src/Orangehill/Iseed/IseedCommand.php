@@ -3,8 +3,8 @@
 namespace Orangehill\Iseed;
 
 use Illuminate\Console\Command;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputOption;
 
 class IseedCommand extends Command
 {
@@ -44,22 +44,20 @@ class IseedCommand extends Command
             app('iseed')->cleanSection();
         }
 
-        $tables        = explode(",", $this->argument('tables'));
-        $chunkSize     = intval($this->option('max'));
-        $prerunEvents  = explode(",", $this->option('prerun'));
+        $tables = explode(",", $this->argument('tables'));
+        $chunkSize = intval($this->option('max'));
+        $exclude = explode(",", $this->option('exclude'));
+        $prerunEvents = explode(",", $this->option('prerun'));
         $postrunEvents = explode(",", $this->option('postrun'));
+        $dumpAuto = intval($this->option('dumpauto'));
 
         if ($chunkSize < 1) {
             $chunkSize = null;
         }
 
-        if ($this->checkSeedAllDatabase()){
-            $tables = app('iseed')->getAllTableName($this->option('database'));
-        }
-
         $tableIncrement = 0;
         foreach ($tables as $table) {
-            $table       = trim($table);
+            $table = trim($table);
             $prerunEvent = null;
             if (isset($prerunEvents[$tableIncrement])) {
                 $prerunEvent = trim($prerunEvents[$tableIncrement]);
@@ -74,28 +72,33 @@ class IseedCommand extends Command
             list($fileName, $className) = $this->generateFileName($table);
 
             // if file does not exist or force option is turned on generate seeder
-            if (!file_exists($fileName) || $this->option('force')) {
+            if (!\File::exists($fileName) || $this->option('force')) {
                 $this->printResult(
                     app('iseed')->generateSeed(
                         $table,
                         $this->option('database'),
                         $chunkSize,
+                        $exclude,
                         $prerunEvent,
-                        $postrunEvent
+                        $postrunEvent,
+                        $dumpAuto
                     ),
                     $table
                 );
                 continue;
             }
 
-            if ($this->confirm('File '.$className.' already exist. Do you wish to override it? [yes|no]')) {
+            if ($this->confirm('File ' . $className . ' already exist. Do you wish to override it? [yes|no]')) {
                 // if user said yes overwrite old seeder
                 $this->printResult(
                     app('iseed')->generateSeed(
                         $table,
                         $this->option('database'),
-                        $chunkSize, $prerunEvent,
-                        $postrunEvent
+                        $chunkSize,
+                        $exclude,
+                        $prerunEvent,
+                        $postrunEvent,
+                        $dumpAuto
                     ),
                     $table
                 );
@@ -118,22 +121,6 @@ class IseedCommand extends Command
     }
 
     /**
-     * Check if process all tables
-     *
-     * @return bool
-     */
-    protected function checkSeedAllDatabase (){
-
-        $checkOptionAll = ($this->option('all') === 'true');
-        $checkTableAll = ($this->argument('tables') === "all");
-
-        if ( ($checkOptionAll) and ($checkTableAll) ){
-            return true;
-        }
-        return false;
-    }
-
-    /**
      * Get the console command options.
      *
      * @return array
@@ -145,9 +132,10 @@ class IseedCommand extends Command
             array('force', null, InputOption::VALUE_NONE, 'force overwrite of all existing seed classes', null),
             array('database', null, InputOption::VALUE_OPTIONAL, 'database connection', \Config::get('database.default')),
             array('max', null, InputOption::VALUE_OPTIONAL, 'max number of rows', null),
+            array('exclude', null, InputOption::VALUE_OPTIONAL, 'exclude columns', null),
             array('prerun', null, InputOption::VALUE_OPTIONAL, 'prerun event name', null),
             array('postrun', null, InputOption::VALUE_OPTIONAL, 'postrun event name', null),
-            array('all', null, InputOption::VALUE_OPTIONAL, 'seed all tables', null),
+            array('dumpauto', null, InputOption::VALUE_OPTIONAL, 'run composer dump-autoload', true),
         );
     }
 
@@ -176,13 +164,13 @@ class IseedCommand extends Command
      */
     protected function generateFileName($table)
     {
-        if (!\Schema::connection($this->option('database'))->hasTable($table)) {
+        if (!\Schema::connection($this->option('database') ? $this->option('database') : config('database.default'))->hasTable($table)) {
             throw new TableNotFoundException("Table $table was not found.");
         }
 
         // Generate class name and file name
         $className = app('iseed')->generateClassName($table);
-        $seedPath  = base_path().config('iseed::config.path');
-        return [$seedPath.'/'.$className.'.php', $className.'.php'];
+        $seedPath = base_path() . config('iseed::config.path');
+        return [$seedPath . '/' . $className . '.php', $className . '.php'];
     }
 }
